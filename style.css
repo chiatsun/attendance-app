@@ -1,0 +1,783 @@
+:root {
+  --bg-color: #121212;
+  --card-bg: rgba(30, 30, 30, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  
+  --accent-color: #00d2ff;
+  --accent-gradient: linear-gradient(135deg, #3a7bd5, #00d2ff);
+  
+  --success-color: #00e676;
+  --success-gradient: linear-gradient(135deg, #00b09b, #96c93d);
+  
+  --danger-color: #ff5252;
+  --danger-gradient: linear-gradient(135deg, #ff416c, #ff4b2b);
+
+  --nav-height: 70px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none; /* Prevent text selection like native apps */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* Prevent scrolling on body */
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  padding-bottom: calc(var(--nav-height) + 20px);
+}
+
+.app-header {
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+.app-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.app-header .subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+}
+
+/* Clock Widget */
+.clock-widget {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 30px 20px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.time-display {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-display {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Status Card */
+.status-card {
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+}
+
+.status-dot.active {
+  background-color: var(--success-color);
+  box-shadow: 0 0 15px var(--success-color);
+  animation: pulse 2s infinite;
+}
+
+.work-duration {
+  font-size: 32px;
+  font-weight: 700;
+  margin-top: 15px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.work-duration.active {
+  opacity: 1;
+  color: var(--success-color);
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(0, 230, 118, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+}
+
+/* Mode Toggle Button (已上班時間 ↔ 離下班倒數) */
+.mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mode-toggle-btn .material-icons-round {
+  font-size: 16px;
+}
+
+.mode-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+/* Active countdown mode — accent colour */
+.mode-toggle-btn.mode-countdown {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: rgba(0, 210, 255, 0.08);
+}
+
+/* Overtime: work-duration turns red and flashes */
+.work-duration.overtime {
+  color: var(--danger-color) !important;
+  animation: overtimePulse 1s ease-in-out infinite;
+}
+
+@keyframes overtimePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+
+/* Settings Card */
+.settings-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.settings-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-title .material-icons-round {
+  font-size: 18px;
+  color: var(--accent-color);
+}
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-group:last-child {
+  margin-bottom: 0;
+}
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+/* Work Type Toggle */
+.toggle-group {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.toggle-btn .material-icons-round {
+  font-size: 18px;
+}
+
+.toggle-btn.active {
+  color: #fff;
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+}
+
+/* Time Input */
+.time-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 4px 12px;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.time-input-wrapper:focus-within {
+  border-color: var(--accent-color);
+}
+
+.time-input-icon {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.time-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  padding: 10px 0;
+  user-select: auto;
+  /* Override native time picker appearance for dark mode */
+  color-scheme: dark;
+}
+
+.clear-time-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+}
+
+.clear-time-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.1);
+}
+
+.clear-time-btn .material-icons-round {
+  font-size: 18px;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  opacity: 0.7;
+  transition: color 0.3s;
+}
+
+/* --- Notification Settings --- */
+.notify-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+/* iOS-style toggle switch */
+.switch {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  display: flex;
+  align-items: center;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  background: #333;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.3s, border-color 0.3s;
+  padding: 3px;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.switch-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(24px);
+}
+
+.switch-icon {
+  font-size: 13px !important;
+  color: #aaa;
+  line-height: 1;
+  transition: color 0.3s;
+}
+
+.switch input:checked + .switch-track .switch-icon {
+  color: var(--success-color);
+}
+
+/* Preset minute buttons */
+.notify-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  transition: opacity 0.25s;
+}
+
+.preset-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.preset-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-btn.active {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* Punchout estimate inside status-card */
+.punchout-estimate {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.punchout-estimate strong {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Punch Controls */
+.punch-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.punch-btn {
+  border: none;
+  border-radius: 20px;
+  padding: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: inherit;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.punch-btn:active:not(.disabled) {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background: var(--success-gradient);
+  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3);
+}
+
+.btn-secondary {
+  background: var(--danger-gradient);
+  box-shadow: 0 4px 15px rgba(255, 82, 82, 0.3);
+}
+
+.punch-btn.disabled {
+  background: #333;
+  color: #777;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* History Tab */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.history-card {
+  padding: 15px 20px;
+  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.history-card:active {
+  transform: scale(0.98);
+}
+
+.history-date {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.history-times {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-times .material-icons-round {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.history-duration {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-color);
+  text-align: right;
+}
+.history-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 50px;
+  font-size: 16px;
+}
+
+/* History type tag */
+.history-type-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.history-type-tag.type-normal {
+  background: rgba(0, 230, 118, 0.15);
+  color: var(--success-color);
+}
+
+.history-type-tag.type-overtime {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffb74d;
+}
+
+/* History estimated punch-out (for in-progress records) */
+.history-est {
+  display: block;
+  font-size: 12px;
+  color: var(--accent-color);
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Break deduction note */
+.break-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ffb74d;
+  font-weight: 500;
+}
+
+.break-note .material-icons-round {
+  font-size: 14px !important;
+  color: #ffb74d;
+  flex-shrink: 0;
+}
+
+/* History card layout */
+.history-card-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* Delete button */
+.delete-btn {
+  background: none;
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  border-radius: 10px;
+  color: var(--danger-color);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  opacity: 0.5;
+}
+
+.delete-btn:hover,
+.history-card:hover .delete-btn {
+  opacity: 1;
+  background: rgba(255, 82, 82, 0.1);
+}
+
+.delete-btn .material-icons-round {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+/* Confirm state — turns green */
+.delete-btn.confirm {
+  background: rgba(0, 230, 118, 0.15);
+  border-color: var(--success-color);
+  color: var(--success-color);
+  opacity: 1;
+  animation: confirmPulse 0.3s ease;
+}
+
+.delete-btn.confirm .material-icons-round {
+  transform: scale(1.2);
+}
+
+@keyframes confirmPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+
+
+/* Tabs Logic */
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--nav-height);
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom); /* iOS support */
+  z-index: 100;
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.nav-item .material-icons-round {
+  font-size: 24px;
+  transition: transform 0.3s;
+}
+
+.nav-item.active {
+  color: var(--accent-color);
+}
+
+.nav-item.active .material-icons-round {
+  transform: translateY(-2px);
+}
+
+/* --- Leave Settings Grid --- */
+.leave-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.leave-btn {
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.leave-btn.active {
+  color: #fff;
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+}
+
+.leave-time-label {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  height: 13px; /* reserve space so button height doesn't jump */
+}
