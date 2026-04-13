@@ -781,3 +781,23 @@ body {
   font-variant-numeric: tabular-nums;
   height: 13px; /* reserve space so button height doesn't jump */
 }
+
+/* Leave Summary Note */
+.leave-summary-note {
+  margin-top: 24px;
+  padding: 12px 16px;
+  background: rgba(243, 156, 18, 0.1);
+  border: 1px dashed rgba(243, 156, 18, 0.3);
+  border-radius: 12px;
+  color: #f39c12;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+.leave-summary-note .material-icons-round {
+  font-size: 18px;
+}
+

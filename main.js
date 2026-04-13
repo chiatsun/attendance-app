@@ -257,6 +257,8 @@ function syncLeaveUI() {
   const group = document.getElementById('group-leave-hours');
   const hint = document.getElementById('leave-hint');
   const icon = document.getElementById('leave-switch-icon');
+  const summaryNote = document.getElementById('leave-summary-note');
+  const rangeText = document.getElementById('leave-range-text');
   
   if (!toggle) return;
   
@@ -282,16 +284,48 @@ function syncLeaveUI() {
     }
   }
   
+  // Update buttons and range note
+  const canShowRange = state.isPunchedIn && state.records.length > 0;
+  
+  if (canShowRange && state.leaveSettings.enabled) {
+    const wt = state.records[0].workType || state.workType;
+    const config = WORK_CONFIG[wt];
+    
+    // 1. 計算「如果不請假」的標準下班時間 (8小時工作 + 休息)
+    const stdOut = calculatePunchOut(state.punchInTime, wt, 0);
+    
+    // 2. 計算請假開始時間
+    // 基本邏輯：標準下班時間往前推請假時數
+    // 但如果請假時數超過 4 小時，代表會跨過中間休息時段，所以要額外往前推休息時間
+    let leaveStartMs = stdOut.getTime() - (state.leaveSettings.hours * 3600000);
+    if (state.leaveSettings.hours > 4) {
+      leaveStartMs -= (config.breakMins * 60 * 1000);
+    }
+    const leaveStart = new Date(leaveStartMs);
+    
+    const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
+    rangeText.textContent = `預計請假時段：${leaveStart.toLocaleTimeString('zh-TW', fmt)} ~ ${stdOut.toLocaleTimeString('zh-TW', fmt)}`;
+    summaryNote.style.display = 'flex';
+  } else {
+    summaryNote.style.display = 'none';
+  }
+
+  const wt = (state.records[0] && state.records[0].workType) || state.workType;
+  const config = WORK_CONFIG[wt];
+  const stdOut = state.isPunchedIn ? calculatePunchOut(state.punchInTime, wt, 0) : null;
+
   for (let i = 1; i <= 8; i++) {
     const btn = document.getElementById(`leave-btn-${i}`);
     if (btn) btn.classList.toggle('active', i === state.leaveSettings.hours);
     
     const timeSpan = document.getElementById(`leave-time-${i}`);
     if (timeSpan) {
-      if (state.isPunchedIn && state.records.length > 0) {
-         const wt = state.records[0].workType || state.workType;
-         const estOut = calculatePunchOut(state.punchInTime, wt, i);
-         timeSpan.textContent = `(${estOut.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' })})`;
+      if (canShowRange && stdOut) {
+         // 按鈕顯示的時間也採用相同邏輯：顯示「請假開始時間」
+         let startMs = stdOut.getTime() - (i * 3600000);
+         if (i > 4) startMs -= (config.breakMins * 60 * 1000);
+         const start = new Date(startMs);
+         timeSpan.textContent = `(${start.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' })} 起)`;
       } else {
          timeSpan.textContent = '';
       }
