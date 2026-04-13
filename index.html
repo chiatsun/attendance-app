@@ -101,10 +101,16 @@
             <span class="material-icons-round">schedule</span> 已上班時間
           </button>
           <!-- Estimated punch-out time -->
-          <div class="punchout-estimate" id="punchout-estimate" style="display:none">
-            <span class="material-icons-round" style="font-size:16px; vertical-align:middle;">flag</span>
-            預計下班：<strong id="punchout-time-display">--:--</strong>
-            <span id="break-label" style="font-size:12px; color:var(--text-secondary);"></span>
+          <div class="punchout-estimate" id="punchout-estimate" style="display:none; flex-direction: column; align-items: center; gap: 4px;">
+            <div>
+              <span class="material-icons-round" style="font-size:16px; vertical-align:middle;">flag</span>
+              預計下班：<strong id="punchout-time-display">--:--</strong>
+              <span id="break-label" style="font-size:12px; color:var(--text-secondary);"></span>
+            </div>
+            <div id="leave-note" style="display:none; font-size:13px; color: #f39c12;">
+              <span class="material-icons-round" style="font-size:14px; vertical-align:middle;">beach_access</span>
+              已含請假 <strong id="leave-hours-display"></strong> 小時
+            </div>
           </div>
         </div>
 

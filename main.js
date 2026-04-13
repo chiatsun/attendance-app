@@ -487,6 +487,15 @@ function updateUI() {
       estimateTime.textContent = est.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
       breakLabel.textContent = cfg.breakLabel;
       estimateEl.style.display = 'flex';
+      
+      const leaveNote = document.getElementById('leave-note');
+      const leaveHrs = document.getElementById('leave-hours-display');
+      if (state.leaveSettings && state.leaveSettings.enabled) {
+        leaveHrs.textContent = state.leaveSettings.hours;
+        leaveNote.style.display = 'block';
+      } else {
+        leaveNote.style.display = 'none';
+      }
     }
 
     btnIn.classList.add('disabled');
