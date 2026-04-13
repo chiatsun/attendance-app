@@ -475,7 +475,8 @@ function updateUI() {
 
     dot.classList.add('active');
     const cfg = WORK_CONFIG[state.workType];
-    text.textContent = `目前的狀態：${cfg.label}中`;
+    const timeInStr = state.punchInTime.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    text.textContent = `目前的狀態：${cfg.label}中 (${timeInStr} 打卡)`;
     text.style.color = 'var(--success-color)';
     dur.classList.add('active');
 
