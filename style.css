@@ -917,3 +917,57 @@ body {
   box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
 }
 
+/* --- Mobile Optimizations --- */
+@media (max-width: 480px) {
+  .app-header {
+    margin-top: 5px;
+    margin-bottom: 15px;
+  }
+  .app-header h1 {
+    font-size: 22px;
+  }
+  .app-header .subtitle {
+    font-size: 12px;
+  }
+  
+  .clock-widget {
+    padding: 15px 10px;
+    margin-bottom: 15px;
+    border-radius: 16px;
+  }
+  .time-display {
+    font-size: 36px;
+  }
+  .date-display {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Compact Quick Picker for mobile */
+  .quick-picker {
+    padding: 12px 10px;
+    margin-top: 8px;
+    border-radius: 16px;
+  }
+  .picker-header {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .picker-columns {
+    gap: 6px;
+  }
+  .col-label {
+    margin-bottom: 2px;
+    font-size: 9px;
+  }
+  .col-items {
+    max-height: 160px; /* Further limit inner scroll height if needed */
+    gap: 4px;
+  }
+  .col-item {
+    padding: 6px 2px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+}
+
