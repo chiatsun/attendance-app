@@ -786,30 +786,67 @@ window.closeQuickPicker = function() {
 
 window.pick = function(type, val) {
   pickerState[type] = val;
+  
+  // --- Auto-Correction Logic to enforce 06:10 ~ 10:00 ---
+  if (type === 'h') {
+    if (val === 6 && pickerState.t === 0) {
+      pickerState.t = 1; // 06:0x -> 06:1x
+    } else if (val === 10) {
+      pickerState.t = 0; // 10:xx -> 10:00
+      pickerState.u = 0;
+    }
+  } else if (type === 't') {
+    // If user picks 10:x0, force units to 0
+    if (pickerState.h === 10) {
+      pickerState.u = 0;
+    }
+  }
+  // -----------------------------
+  
   syncPickerUI();
   updateManualTimeFromPicker();
   
   // Auto-close after picking units for speed, or if we have a full valid time
-  if (type === 'u') {
+  if (type === 'u' || (pickerState.h === 10 && type === 't')) {
     setTimeout(closeQuickPicker, 150);
   }
 };
 
 function syncPickerUI() {
+  const h = pickerState.h;
+
   // Hour
   document.querySelectorAll('#col-hour .col-item').forEach(btn => {
     const val = parseInt(btn.textContent);
-    btn.classList.toggle('active', val === pickerState.h);
+    btn.classList.toggle('active', val === h);
   });
+  
   // Tens
   document.querySelectorAll('#col-min-tens .col-item').forEach(btn => {
     const val = parseInt(btn.textContent) / 10;
     btn.classList.toggle('active', val === pickerState.t);
+    
+    // Dynamic Filtering
+    if (h === 6 && val === 0) {
+      btn.style.display = 'none';
+    } else if (h === 10 && val > 0) {
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = 'block';
+    }
   });
+
   // Units
   document.querySelectorAll('#col-min-units .col-item').forEach(btn => {
     const val = parseInt(btn.textContent);
     btn.classList.toggle('active', val === pickerState.u);
+    
+    // Dynamic Filtering
+    if (h === 10 && val > 0) {
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = 'block';
+    }
   });
 }
 
