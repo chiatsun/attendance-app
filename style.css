@@ -288,6 +288,7 @@ body {
 
 /* Time Input */
 .time-input-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
@@ -799,5 +800,120 @@ body {
 
 .leave-summary-note .material-icons-round {
   font-size: 18px;
+}
+
+/* --- Quick Time Picker --- */
+.quick-picker {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  width: 100%;
+  padding: 18px;
+  margin-top: 12px;
+  animation: pickerFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes pickerFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-color);
+  letter-spacing: 0.5px;
+}
+
+.picker-close {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.picker-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.picker-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.picker-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.col-label {
+  font-size: 10px;
+  text-align: center;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
+.col-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.col-items::-webkit-scrollbar {
+  width: 3px;
+}
+.col-items::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+.col-item {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.col-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.col-item.active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
 }
 

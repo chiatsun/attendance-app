@@ -143,6 +143,27 @@ window.setWorkType = function(type) {
   state.workType = type;
   document.getElementById('type-normal').classList.toggle('active', type === 'normal');
   document.getElementById('type-overtime').classList.toggle('active', type === 'overtime');
+
+  const manualTimeInput = document.getElementById('manual-time');
+  const hintEl = document.getElementById('manual-time-hint');
+
+  if (type === 'normal') {
+    manualTimeInput.min = "06:10";
+    manualTimeInput.max = "10:00";
+    if (hintEl) {
+      hintEl.innerHTML = '留空則以按鈕時間為準 <span style="color:#e74c3c; font-weight:600;">(彈性上班時間:06:10~10:00)</span>';
+    }
+  } else {
+    manualTimeInput.removeAttribute('min');
+    manualTimeInput.removeAttribute('max');
+    if (hintEl) {
+      hintEl.textContent = '留空則以按下「上班打卡」時的時間為準';
+    }
+  }
+  
+  if (type !== 'normal') {
+    closeQuickPicker();
+  }
 };
 
 // --- Display Mode Toggle (elapsed ↔ countdown) ---
@@ -436,6 +457,17 @@ window.handlePunchIn = function() {
     punchInTime.setHours(h, m, 0, 0);
   }
 
+  // --- Validate Work Time for 'normal' shift ---
+  if (state.workType === 'normal') {
+    const h = punchInTime.getHours();
+    const m = punchInTime.getMinutes();
+    const timeNum = h * 100 + m; // 06:10 -> 610, 10:00 -> 1000
+    if (timeNum < 610 || timeNum > 1000) {
+      alert('⚠️ 「上班」性質的時間限制在 06:10 ~ 10:00 之間！');
+      return;
+    }
+  }
+
   state.isPunchedIn = true;
   state.punchInTime = punchInTime;
   _notifyFired = false; // reset so reminder fires fresh for this session
@@ -717,3 +749,105 @@ window.switchTab = function(tabId) {
 
 // Start
 document.addEventListener('DOMContentLoaded', init);
+
+
+// --- Quick Time Picker Logic ---
+
+let pickerState = {
+  h: 8,
+  t: 0,
+  u: 0
+};
+
+window.openQuickPicker = function() {
+  const picker = document.getElementById('quick-picker');
+  if (!picker) return;
+  
+  // Try to parse current input value to sync picker
+  const currentVal = document.getElementById('manual-time').value;
+  if (currentVal && currentVal.includes(':')) {
+    const [h, m] = currentVal.split(':').map(Number);
+    pickerState.h = h;
+    pickerState.t = Math.floor(m / 10);
+    pickerState.u = m % 10;
+  }
+
+  syncPickerUI();
+  picker.style.display = 'block';
+};
+
+window.closeQuickPicker = function() {
+  const picker = document.getElementById('quick-picker');
+  if (picker) picker.style.display = 'none';
+};
+
+window.pick = function(type, val) {
+  pickerState[type] = val;
+  syncPickerUI();
+  updateManualTimeFromPicker();
+  
+  // Auto-close after picking units for speed, or if we have a full valid time
+  if (type === 'u') {
+    setTimeout(closeQuickPicker, 150);
+  }
+};
+
+function syncPickerUI() {
+  // Hour
+  document.querySelectorAll('#col-hour .col-item').forEach(btn => {
+    const val = parseInt(btn.textContent);
+    btn.classList.toggle('active', val === pickerState.h);
+  });
+  // Tens
+  document.querySelectorAll('#col-min-tens .col-item').forEach(btn => {
+    const val = parseInt(btn.textContent) / 10;
+    btn.classList.toggle('active', val === pickerState.t);
+  });
+  // Units
+  document.querySelectorAll('#col-min-units .col-item').forEach(btn => {
+    const val = parseInt(btn.textContent);
+    btn.classList.toggle('active', val === pickerState.u);
+  });
+}
+
+function updateManualTimeFromPicker() {
+  const hh = pickerState.h.toString().padStart(2, '0');
+  const mm = (pickerState.t * 10 + pickerState.u).toString().padStart(2, '0');
+  document.getElementById('manual-time').value = `${hh}:${mm}`;
+}
+
+// Global initialization for time input interceptor
+function setupPickerInterceptor() {
+  const input = document.getElementById('manual-time');
+  if (!input) return;
+
+  // Intercept click and focus to show custom picker instead of native one
+  const handleTrigger = (e) => {
+    if (state.workType === 'normal') {
+      e.preventDefault();
+      input.blur(); // Prevent keyboard on mobile
+      openQuickPicker();
+    }
+  };
+
+  input.addEventListener('mousedown', handleTrigger);
+  input.addEventListener('focus', handleTrigger);
+  
+  // Click-outside listener
+  document.addEventListener('mousedown', (e) => {
+    const picker = document.getElementById('quick-picker');
+    const inputWrapper = document.querySelector('.time-input-wrapper');
+    if (picker && picker.style.display === 'block') {
+      if (!picker.contains(e.target) && !inputWrapper.contains(e.target)) {
+        closeQuickPicker();
+      }
+    }
+  });
+}
+
+// Add to init
+const originalInit = init;
+init = function() {
+  originalInit();
+  setupPickerInterceptor();
+};
