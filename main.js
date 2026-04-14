@@ -4,7 +4,7 @@ let state = {
   punchInTime: null,
   workType: 'normal',     // 'normal' | 'overtime'
   displayMode: 'elapsed', // 'elapsed' | 'countdown'
-  leaveSettings: { enabled: false, hours: 1 },
+  leaveSettings: { enabled: false, type: 'flexible', hours: 4 },
   records: []
 };
 
@@ -43,7 +43,13 @@ function loadData() {
     state.isPunchedIn = parsed.isPunchedIn;
     state.punchInTime = parsed.punchInTime ? new Date(parsed.punchInTime) : null;
     state.workType = parsed.workType || 'normal';
-    if (parsed.leaveSettings) state.leaveSettings = parsed.leaveSettings;
+    if (parsed.leaveSettings) {
+      state.leaveSettings = {
+        enabled: parsed.leaveSettings.enabled || false,
+        type: parsed.leaveSettings.type || 'flexible',
+        hours: parsed.leaveSettings.hours || 4
+      };
+    }
   }
 
   const savedRecords = localStorage.getItem('attendance_records');
@@ -276,95 +282,140 @@ async function requestNotifyPermission() {
 }
 
 // --- Leave Logic ---
+// --- Leave Logic ---
 function syncLeaveUI() {
-  const toggle = document.getElementById('leave-toggle');
-  const group = document.getElementById('group-leave-hours');
-  const hint = document.getElementById('leave-hint');
-  const icon = document.getElementById('leave-switch-icon');
-  const summaryNote = document.getElementById('leave-summary-note');
-  const rangeText = document.getElementById('leave-range-text');
-  
-  if (!toggle) return;
-  
-  toggle.checked = state.leaveSettings.enabled;
-  
-  if (state.leaveSettings.enabled) {
-    group.style.opacity = '1';
-    group.style.pointerEvents = '';
-    hint.textContent = `已開啟：預計請假 ${state.leaveSettings.hours} 小時`;
-    hint.style.color = 'var(--success-color)';
-    if (icon) {
-      icon.textContent = 'beach_access';
-      icon.style.color = 'var(--success-color)';
-    }
-  } else {
-    group.style.opacity = '0.5';
-    group.style.pointerEvents = 'none';
-    hint.textContent = '開啟後，可選擇今日預計請假的時數';
-    hint.style.color = '';
-    if (icon) {
-      icon.textContent = 'event_busy';
-      icon.style.color = '#aaa';
-    }
-  }
-  
-  // Update buttons and range note
-  const canShowRange = state.isPunchedIn && state.records.length > 0;
-  
-  if (canShowRange && state.leaveSettings.enabled) {
-    const wt = state.records[0].workType || state.workType;
-    const config = WORK_CONFIG[wt];
-    
-    // 1. 計算「如果不請假」的標準下班時間 (8小時工作 + 休息)
-    const stdOut = calculatePunchOut(state.punchInTime, wt, 0);
-    
-    // 2. 計算請假開始時間
-    // 基本邏輯：標準下班時間往前推請假時數
-    // 但如果請假時數超過 4 小時，代表會跨過中間休息時段，所以要額外往前推休息時間
-    let leaveStartMs = stdOut.getTime() - (state.leaveSettings.hours * 3600000);
-    if (state.leaveSettings.hours > 4) {
-      leaveStartMs -= (config.breakMins * 60 * 1000);
-    }
-    const leaveStart = new Date(leaveStartMs);
-    
-    const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
-    rangeText.textContent = `預計請假時段：${leaveStart.toLocaleTimeString('zh-TW', fmt)} ~ ${stdOut.toLocaleTimeString('zh-TW', fmt)}`;
-    summaryNote.style.display = 'flex';
-  } else {
-    summaryNote.style.display = 'none';
+  const settings = state.leaveSettings;
+  const isFlex = settings.enabled && settings.type === 'flexible';
+  const isFixed = settings.enabled && settings.type === 'fixed';
+
+  // Toggle Switches & Icons
+  const fToggle = document.getElementById('leave-flexible-toggle');
+  const fIcon = document.getElementById('leave-flexible-icon');
+  if (fToggle) fToggle.checked = isFlex;
+  if (fIcon) {
+    fIcon.textContent = isFlex ? 'beach_access' : 'event_busy';
+    fIcon.style.color = isFlex ? 'var(--success-color)' : '#aaa';
   }
 
+  const xToggle = document.getElementById('leave-fixed-toggle');
+  const xIcon = document.getElementById('leave-fixed-icon');
+  if (xToggle) xToggle.checked = isFixed;
+  if (xIcon) {
+    xIcon.textContent = isFixed ? 'notifications_active' : 'event_busy';
+    xIcon.style.color = isFixed ? '#3498db' : '#aaa';
+  }
+
+  // Groups
+  const fGroup = document.getElementById('group-flexible-hours');
+  if (fGroup) {
+    fGroup.style.opacity = isFlex ? '1' : '0.5';
+    fGroup.style.pointerEvents = isFlex ? '' : 'none';
+  }
+  const xGroup = document.getElementById('group-fixed-hours');
+  if (xGroup) {
+    xGroup.style.opacity = isFixed ? '1' : '0.5';
+    xGroup.style.pointerEvents = isFixed ? '' : 'none';
+  }
+
+  // Logic Helpers
   const wt = (state.records[0] && state.records[0].workType) || state.workType;
   const config = WORK_CONFIG[wt];
-  const stdOut = state.isPunchedIn ? calculatePunchOut(state.punchInTime, wt, 0) : null;
+  const canShowRange = state.isPunchedIn && state.records.length > 0;
+  const stdOut = (state.isPunchedIn && state.punchInTime) ? calculatePunchOut(state.punchInTime, wt, 0) : null;
+  const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
 
+  // 4. Update Buttons for Both Cards
   for (let i = 1; i <= 8; i++) {
-    const btn = document.getElementById(`leave-btn-${i}`);
-    if (btn) btn.classList.toggle('active', i === state.leaveSettings.hours);
-    
-    const timeSpan = document.getElementById(`leave-time-${i}`);
-    if (timeSpan) {
+    // Flexible
+    const fBtn = document.getElementById(`flex-leave-${i}`);
+    if (fBtn) fBtn.classList.toggle('active', isFlex && i === settings.hours);
+    const fTime = document.getElementById(`flex-time-${i}`);
+    if (fTime) {
       if (canShowRange && stdOut) {
-         // 按鈕顯示的時間也採用相同邏輯：顯示「請假開始時間」
-         let startMs = stdOut.getTime() - (i * 3600000);
-         if (i > 4) startMs -= (config.breakMins * 60 * 1000);
-         const start = new Date(startMs);
-         timeSpan.textContent = `(${start.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' })} 起)`;
+        let startMs = stdOut.getTime() - (i * 3600000);
+        if (i > 4) startMs -= (config.breakMins * 60 * 1000);
+        const start = new Date(startMs);
+        fTime.textContent = `(${start.toLocaleTimeString('zh-TW', fmt)} 起)`;
       } else {
-         timeSpan.textContent = '';
+        fTime.textContent = '';
       }
+    }
+
+    // Fixed
+    const xBtn = document.getElementById(`fixed-leave-${i}`);
+    if (xBtn) xBtn.classList.toggle('active', isFixed && i === settings.hours);
+    const xTime = document.getElementById(`fixed-time-${i}`);
+    if (xTime) {
+      let endMs = i * 3600000;
+      if (i > 4) endMs += 50 * 60000; // Break gap
+      const base = new Date(); base.setHours(8, 30, 0, 0);
+      const end = new Date(base.getTime() + endMs);
+      xTime.textContent = `(~${end.toLocaleTimeString('zh-TW', fmt)})`;
+    }
+  }
+
+  // 5. Update Summaries
+  const fSummary = document.getElementById('leave-flexible-summary');
+  if (fSummary) {
+    if (isFlex && canShowRange && stdOut) {
+      const flexHrs = settings.hours;
+      // We will use the calculatePunchOut helper below to get the exact start/end
+      
+      // Let's use a simpler way: The leave period ends at stdOut.
+      // The start is stdOut minus (hours + break if hours spans lunch)
+      // Actually, Example (2) says: 09:15 in, Out at 14:05.
+      // Leave 4h starts at 14:05 - 4h = 10:05? No, they start leave at 14:05.
+      // Wait! The user says: "假單填寫時間為 14:05-18:05" (4 hours).
+      // This means the leave is AFTER the 4 hours of work.
+      // 09:15 + 4h work + 50m break = 14:05.
+      // So Leave starts at 14:05.
+      // And Ends at 18:05.
+      // My calculatePunchOut(0, 0) gives 18:05.
+      // My calculatePunchOut(hours) gives 14:05.
+      // So Leave Range = [calculatePunchOut(hours) to calculatePunchOut(0)].
+      
+      const leaveStart = calculatePunchOut(state.punchInTime, wt, flexHrs);
+      const leaveEnd = calculatePunchOut(state.punchInTime, wt, 0);
+
+      const fRange = document.getElementById('leave-flexible-range');
+      if (fRange) fRange.textContent = `預計請假時段：${leaveStart.toLocaleTimeString('zh-TW', fmt)} ~ ${leaveEnd.toLocaleTimeString('zh-TW', fmt)}`;
+      fSummary.style.display = 'flex';
+    } else {
+      fSummary.style.display = 'none';
+    }
+  }
+
+  const xSummary = document.getElementById('leave-fixed-summary');
+  if (xSummary) {
+    if (isFixed) {
+      let endMs = settings.hours * 3600000;
+      if (settings.hours > 4) endMs += 50 * 60000;
+      const base = new Date(); base.setHours(8, 30, 0, 0);
+      const end = new Date(base.getTime() + endMs);
+      const xRange = document.getElementById('leave-fixed-range');
+      if (xRange) xRange.textContent = `預計請假時段：08:30 ~ ${end.toLocaleTimeString('zh-TW', fmt)}`;
+      xSummary.style.display = 'flex';
+    } else {
+      xSummary.style.display = 'none';
     }
   }
 }
 
-window.onLeaveToggle = function(checked) {
-  state.leaveSettings.enabled = checked;
+window.onLeaveToggle = function(type, checked) {
+  if (checked) {
+    state.leaveSettings.enabled = true;
+    state.leaveSettings.type = type;
+  } else {
+    state.leaveSettings.enabled = false;
+  }
   saveData();
   syncLeaveUI();
   recalcCurrentSession();
 };
 
-window.setLeaveHours = function(hours) {
+window.setLeaveHours = function(type, hours) {
+  state.leaveSettings.enabled = true;
+  state.leaveSettings.type = type;
   state.leaveSettings.hours = hours;
   saveData();
   syncLeaveUI();
@@ -426,6 +477,13 @@ function fireNotification(estOut, minsBefore) {
 function calculatePunchOut(punchInTime, workType, specificLeaveHours = null) {
   const config = WORK_CONFIG[workType];
   
+  // --- Scenario B: Fixed Mode (Late Arrival / Morning Leave) ---
+  if (state.leaveSettings && state.leaveSettings.enabled && state.leaveSettings.type === 'fixed') {
+    const out = new Date(punchInTime);
+    out.setHours(17, 20, 0, 0); // Always fixed at 17:20
+    return out;
+  }
+
   let actualWorkHours = WORK_HOURS; // default 8
   
   if (specificLeaveHours !== null) {
@@ -436,14 +494,19 @@ function calculatePunchOut(punchInTime, workType, specificLeaveHours = null) {
   
   if (actualWorkHours < 0) actualWorkHours = 0;
   
-  let breakMins = 0;
-  // If actual work hours > 4, include the break time!
-  if (actualWorkHours > 4) {
-    breakMins = config.breakMins;
+  // Base reach time (hours of work)
+  let punchOut = new Date(punchInTime.getTime() + actualWorkHours * 3600000);
+
+  // --- Lunch Break Logic (Standard: 12:00) ---
+  // If we punch in before 12:00 and our estimated out time passes 12:00,
+  // we must account for the fixed break duration.
+  const lunchStart = new Date(punchInTime);
+  lunchStart.setHours(12, 0, 0, 0);
+
+  if (punchInTime < lunchStart && punchOut > lunchStart) {
+    punchOut = new Date(punchOut.getTime() + config.breakMins * 60000);
   }
 
-  const totalMins = (actualWorkHours * 60) + breakMins;
-  const punchOut = new Date(punchInTime.getTime() + totalMins * 60 * 1000);
   return punchOut;
 }
 
@@ -462,12 +525,17 @@ window.handlePunchIn = function() {
 
   // --- Validate Work Time for 'normal' shift ---
   if (state.workType === 'normal') {
-    const h = punchInTime.getHours();
-    const m = punchInTime.getMinutes();
-    const timeNum = h * 100 + m; // 06:10 -> 610, 10:00 -> 1000
-    if (timeNum < 610 || timeNum > 1000) {
-      alert('⚠️ 「上班」性質的時間限制在 06:10 ~ 10:00 之間！');
-      return;
+    const isFixedLeave = state.leaveSettings && state.leaveSettings.enabled && state.leaveSettings.type === 'fixed';
+    
+    // Skip 10:00 restriction if Late Leave mode is active
+    if (!isFixedLeave) {
+      const h = punchInTime.getHours();
+      const m = punchInTime.getMinutes();
+      const timeNum = h * 100 + m; // 06:10 -> 610, 10:00 -> 1000
+      if (timeNum < 610 || timeNum > 1000) {
+        alert('⚠️ 「上班」性質的時間限制在 06:10 ~ 10:00 之間！');
+        return;
+      }
     }
   }
 
@@ -743,11 +811,12 @@ window.switchTab = function(tabId) {
   });
   document.getElementById(`tab-${tabId}`).classList.add('active');
 
-  // Update Nav Buttons
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.currentTarget.classList.add('active');
+  if (event && event.currentTarget) {
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+  }
 };
 
 // Start

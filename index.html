@@ -192,64 +192,77 @@
           <p class="subtitle">提早休息，充飽電再出發</p>
         </header>
 
-        <div class="settings-card" id="leave-settings-card">
+        <!-- Leave Tab: Flexible (Before 10:00) -->
+        <div class="settings-card" id="leave-flexible-card" style="margin-bottom: 20px;">
           <div class="field-group">
             <div class="notify-header" style="margin-bottom: 8px;">
-              <label class="field-label" style="margin:0; font-size:15px;">是否請假</label>
+              <label class="field-label" style="margin:0; font-size:15px; font-weight: 700;">已於 10:00 之前打卡後請假</label>
               <label class="switch">
-                <input type="checkbox" id="leave-toggle" onchange="onLeaveToggle(this.checked)">
+                <input type="checkbox" id="leave-flexible-toggle" onchange="onLeaveToggle('flexible', this.checked)">
                 <span class="switch-track">
                   <span class="switch-thumb">
-                    <span class="material-icons-round switch-icon" id="leave-switch-icon" style="font-size: 13px !important; color: #aaa;">event_busy</span>
+                    <span class="material-icons-round switch-icon" id="leave-flexible-icon" style="font-size: 13px !important; color: #aaa;">event_busy</span>
                   </span>
                 </span>
               </label>
             </div>
-            <p class="field-hint" id="leave-hint">開啟後，可選擇今日預計請假的時數。</p>
+            <p class="field-hint" id="leave-flexible-hint">刷卡後才申請下午假單，依當日全日可下班時間試算。</p>
           </div>
 
-          <div class="field-group" id="group-leave-hours" style="opacity: 0.5; pointer-events: none; margin-top: 24px;">
-            <label class="field-label" style="margin-bottom:12px;">選擇請假時數（由下班往前推）</label>
+          <div class="field-group" id="group-flexible-hours" style="opacity: 0.5; pointer-events: none; margin-top: 16px;">
+            <label class="field-label" style="margin-bottom:12px;">選擇請假時數（由預計下班往前推）</label>
             <div class="leave-grid">
-              <button class="leave-btn active" id="leave-btn-1" onclick="setLeaveHours(1)">
-                <span>1 小時</span>
-                <span id="leave-time-1" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-2" onclick="setLeaveHours(2)">
-                <span>2 小時</span>
-                <span id="leave-time-2" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-3" onclick="setLeaveHours(3)">
-                <span>3 小時</span>
-                <span id="leave-time-3" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-4" onclick="setLeaveHours(4)">
-                <span>4 小時</span>
-                <span id="leave-time-4" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-5" onclick="setLeaveHours(5)">
-                <span>5 小時</span>
-                <span id="leave-time-5" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-6" onclick="setLeaveHours(6)">
-                <span>6 小時</span>
-                <span id="leave-time-6" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-7" onclick="setLeaveHours(7)">
-                <span>7 小時</span>
-                <span id="leave-time-7" class="leave-time-label"></span>
-              </button>
-              <button class="leave-btn" id="leave-btn-8" onclick="setLeaveHours(8)">
-                <span>8 小時</span>
-                <span id="leave-time-8" class="leave-time-label"></span>
-              </button>
+              <button class="leave-btn" id="flex-leave-1" onclick="setLeaveHours('flexible', 1)"><span>1 小時</span><span id="flex-time-1" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-2" onclick="setLeaveHours('flexible', 2)"><span>2 小時</span><span id="flex-time-2" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-3" onclick="setLeaveHours('flexible', 3)"><span>3 小時</span><span id="flex-time-3" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-4" onclick="setLeaveHours('flexible', 4)"><span>4 小時</span><span id="flex-time-4" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-5" onclick="setLeaveHours('flexible', 5)"><span>5 小時</span><span id="flex-time-5" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-6" onclick="setLeaveHours('flexible', 6)"><span>6 小時</span><span id="flex-time-6" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-7" onclick="setLeaveHours('flexible', 7)"><span>7 小時</span><span id="flex-time-7" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="flex-leave-8" onclick="setLeaveHours('flexible', 8)"><span>8 小時</span><span id="flex-time-8" class="leave-time-label"></span></button>
             </div>
           </div>
-
-          <!-- Leave Summary Note -->
-          <div id="leave-summary-note" class="leave-summary-note" style="display:none;">
+          
+          <div id="leave-flexible-summary" class="leave-summary-note" style="display: none; margin-top: 20px;">
             <span class="material-icons-round">info</span>
-            <span id="leave-range-text">預計請假時段：--:-- ~ --:--</span>
+            <span id="leave-flexible-range">預計請假時段：--:-- ~ --:--</span>
+          </div>
+        </div>
+
+        <!-- Leave Tab: Fixed (Late Arrival) -->
+        <div class="settings-card" id="leave-fixed-card">
+          <div class="field-group">
+            <div class="notify-header" style="margin-bottom: 8px;">
+              <label class="field-label" style="margin:0; font-size:15px; font-weight: 700;">逾 10 點未打卡請假</label>
+              <label class="switch">
+                <input type="checkbox" id="leave-fixed-toggle" onchange="onLeaveToggle('fixed', this.checked)">
+                <span class="switch-track">
+                  <span class="switch-thumb">
+                    <span class="material-icons-round switch-icon" id="leave-fixed-icon" style="font-size: 13px !important; color: #aaa;">event_busy</span>
+                  </span>
+                </span>
+              </label>
+            </div>
+            <p class="field-hint" id="leave-fixed-hint">無彈性刷卡時間，出勤回歸 8:30-17:20，請假開始為 8:30。</p>
+          </div>
+
+          <div class="field-group" id="group-fixed-hours" style="opacity: 0.5; pointer-events: none; margin-top: 16px;">
+            <label class="field-label" style="margin-bottom:12px;">選擇上午請假時數（請假開始時間為 8:30）</label>
+            <div class="leave-grid">
+              <button class="leave-btn" id="fixed-leave-1" onclick="setLeaveHours('fixed', 1)"><span>1 小時</span><span id="fixed-time-1" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-2" onclick="setLeaveHours('fixed', 2)"><span>2 小時</span><span id="fixed-time-2" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-3" onclick="setLeaveHours('fixed', 3)"><span>3 小時</span><span id="fixed-time-3" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-4" onclick="setLeaveHours('fixed', 4)"><span>4 小時</span><span id="fixed-time-4" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-5" onclick="setLeaveHours('fixed', 5)"><span>5 小時</span><span id="fixed-time-5" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-6" onclick="setLeaveHours('fixed', 6)"><span>6 小時</span><span id="fixed-time-6" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-7" onclick="setLeaveHours('fixed', 7)"><span>7 小時</span><span id="fixed-time-7" class="leave-time-label"></span></button>
+              <button class="leave-btn" id="fixed-leave-8" onclick="setLeaveHours('fixed', 8)"><span>8 小時</span><span id="fixed-time-8" class="leave-time-label"></span></button>
+            </div>
+          </div>
+          
+          <div id="leave-fixed-summary" class="leave-summary-note" style="display: none; margin-top: 20px; background: rgba(52, 152, 219, 0.1); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">
+            <span class="material-icons-round">info</span>
+            <span id="leave-fixed-range">預計請假時段：08:30 ~ --:--</span>
           </div>
         </div>
         </div>
