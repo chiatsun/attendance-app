@@ -32,6 +32,7 @@ function init() {
   updateHistoryUI();
   syncNotifyUI();
   syncLeaveUI();
+  setupPickerInterceptor();
 }
 
 // --- Data Layer ---
@@ -844,10 +845,3 @@ function setupPickerInterceptor() {
     }
   });
 }
-
-// Add to init
-const originalInit = init;
-init = function() {
-  originalInit();
-  setupPickerInterceptor();
-};
