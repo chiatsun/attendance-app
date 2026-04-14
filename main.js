@@ -151,12 +151,14 @@ window.setWorkType = function(type) {
   if (type === 'normal') {
     manualTimeInput.min = "06:10";
     manualTimeInput.max = "10:00";
+    manualTimeInput.readOnly = true; // Prevents native picker!
     if (hintEl) {
-      hintEl.innerHTML = '留空則以按鈕時間為準 <span style="color:#e74c3c; font-weight:600;">(彈性上班時間:06:10~10:00)</span>';
+      hintEl.innerHTML = '點選上方時間開啟選單 <span style="color:#e74c3c; font-weight:600;">(彈性上班時間:06:10~10:00)</span>';
     }
   } else {
     manualTimeInput.removeAttribute('min');
     manualTimeInput.removeAttribute('max');
+    manualTimeInput.readOnly = false;
     if (hintEl) {
       hintEl.textContent = '留空則以按下「上班打卡」時的時間為準';
     }
@@ -819,19 +821,25 @@ function updateManualTimeFromPicker() {
 
 // Global initialization for time input interceptor
 function setupPickerInterceptor() {
+  console.log('--- Attendance App: Quick Picker Initialized ---');
   const input = document.getElementById('manual-time');
   if (!input) return;
 
-  // Intercept click and focus to show custom picker instead of native one
+  // Intercept events to show custom picker instead of native one
   const handleTrigger = (e) => {
     if (state.workType === 'normal') {
+      console.log('Picker trigger detected');
       e.preventDefault();
-      input.blur(); // Prevent keyboard on mobile
+      e.stopPropagation();
+      input.blur(); 
       openQuickPicker();
     }
   };
 
+  // Multiple listeners for various devices
+  input.addEventListener('click', handleTrigger);
   input.addEventListener('mousedown', handleTrigger);
+  input.addEventListener('touchstart', handleTrigger);
   input.addEventListener('focus', handleTrigger);
   
   // Click-outside listener

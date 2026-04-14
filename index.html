@@ -59,49 +59,49 @@
               <button class="clear-time-btn" onclick="clearManualTime()" title="使用打卡當下時間">
                 <span class="material-icons-round">close</span>
               </button>
-            </div>
-            
-            <!-- Quick Time Picker Panel -->
-            <div id="quick-picker" class="quick-picker glass-panel">
-              <div class="picker-header">
-                <span>快速點選</span>
-                <button class="picker-close" onclick="closeQuickPicker()">×</button>
-              </div>
-              <div class="picker-columns">
-                <div class="picker-col" id="col-hour">
-                  <div class="col-label">時</div>
-                  <div class="col-items">
-                    <button class="col-item" onclick="pick('h', 6)">06</button>
-                    <button class="col-item" onclick="pick('h', 7)">07</button>
-                    <button class="col-item" onclick="pick('h', 8)">08</button>
-                    <button class="col-item" onclick="pick('h', 9)">09</button>
-                    <button class="col-item" onclick="pick('h', 10)">10</button>
-                  </div>
+              
+              <!-- Quick Time Picker Panel (Moved inside wrapper) -->
+              <div id="quick-picker" class="quick-picker glass-panel">
+                <div class="picker-header">
+                  <span>快速點選</span>
+                  <button class="picker-close" onclick="closeQuickPicker()">×</button>
                 </div>
-                <div class="picker-col" id="col-min-tens">
-                  <div class="col-label">分(10s)</div>
-                  <div class="col-items">
-                    <button class="col-item" onclick="pick('t', 0)">00</button>
-                    <button class="col-item" onclick="pick('t', 1)">10</button>
-                    <button class="col-item" onclick="pick('t', 2)">20</button>
-                    <button class="col-item" onclick="pick('t', 3)">30</button>
-                    <button class="col-item" onclick="pick('t', 4)">40</button>
-                    <button class="col-item" onclick="pick('t', 5)">50</button>
+                <div class="picker-columns">
+                  <div class="picker-col" id="col-hour">
+                    <div class="col-label">時</div>
+                    <div class="col-items">
+                      <button class="col-item" onclick="pick('h', 6)">06</button>
+                      <button class="col-item" onclick="pick('h', 7)">07</button>
+                      <button class="col-item" onclick="pick('h', 8)">08</button>
+                      <button class="col-item" onclick="pick('h', 9)">09</button>
+                      <button class="col-item" onclick="pick('h', 10)">10</button>
+                    </div>
                   </div>
-                </div>
-                <div class="picker-col" id="col-min-units">
-                  <div class="col-label">分(1s)</div>
-                  <div class="col-items">
-                    <button class="col-item" onclick="pick('u', 0)">0</button>
-                    <button class="col-item" onclick="pick('u', 1)">1</button>
-                    <button class="col-item" onclick="pick('u', 2)">2</button>
-                    <button class="col-item" onclick="pick('u', 3)">3</button>
-                    <button class="col-item" onclick="pick('u', 4)">4</button>
-                    <button class="col-item" onclick="pick('u', 5)">5</button>
-                    <button class="col-item" onclick="pick('u', 6)">6</button>
-                    <button class="col-item" onclick="pick('u', 7)">7</button>
-                    <button class="col-item" onclick="pick('u', 8)">8</button>
-                    <button class="col-item" onclick="pick('u', 9)">9</button>
+                  <div class="picker-col" id="col-min-tens">
+                    <div class="col-label">分(10s)</div>
+                    <div class="col-items">
+                      <button class="col-item" onclick="pick('t', 0)">00</button>
+                      <button class="col-item" onclick="pick('t', 1)">10</button>
+                      <button class="col-item" onclick="pick('t', 2)">20</button>
+                      <button class="col-item" onclick="pick('t', 3)">30</button>
+                      <button class="col-item" onclick="pick('t', 4)">40</button>
+                      <button class="col-item" onclick="pick('t', 5)">50</button>
+                    </div>
+                  </div>
+                  <div class="picker-col" id="col-min-units">
+                    <div class="col-label">分(1s)</div>
+                    <div class="col-items">
+                      <button class="col-item" onclick="pick('u', 0)">0</button>
+                      <button class="col-item" onclick="pick('u', 1)">1</button>
+                      <button class="col-item" onclick="pick('u', 2)">2</button>
+                      <button class="col-item" onclick="pick('u', 3)">3</button>
+                      <button class="col-item" onclick="pick('u', 4)">4</button>
+                      <button class="col-item" onclick="pick('u', 5)">5</button>
+                      <button class="col-item" onclick="pick('u', 6)">6</button>
+                      <button class="col-item" onclick="pick('u', 7)">7</button>
+                      <button class="col-item" onclick="pick('u', 8)">8</button>
+                      <button class="col-item" onclick="pick('u', 9)">9</button>
+                    </div>
                   </div>
                 </div>
               </div>
