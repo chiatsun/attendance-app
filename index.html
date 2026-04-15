@@ -260,9 +260,14 @@
             </div>
           </div>
           
-          <div id="leave-fixed-summary" class="leave-summary-note" style="display: none; margin-top: 20px; background: rgba(52, 152, 219, 0.1); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">
-            <span class="material-icons-round">info</span>
-            <span id="leave-fixed-range">預計請假時段：08:30 ~ --:--</span>
+          <div id="leave-fixed-summary" class="leave-summary-note" style="display: none; flex-direction: column; align-items: flex-start; margin-top: 20px; background: rgba(52, 152, 219, 0.1); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">
+            <div>
+              <span class="material-icons-round" style="vertical-align: middle;">info</span>
+              <span id="leave-fixed-range">預計請假時段：08:30 ~ --:--</span>
+            </div>
+            <div id="leave-fixed-reminder" style="display: none; color: #e74c3c; font-weight: bold; margin-top: 8px; padding-left: 28px; width: 100%;">
+              請於 <span id="leave-fixed-reminder-time">--:--</span> 前上班打卡
+            </div>
           </div>
         </div>
         </div>

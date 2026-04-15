@@ -394,9 +394,27 @@ function syncLeaveUI() {
       const end = new Date(base.getTime() + endMs);
       const xRange = document.getElementById('leave-fixed-range');
       if (xRange) xRange.textContent = `預計請假時段：08:30 ~ ${end.toLocaleTimeString('zh-TW', fmt)}`;
+      
+      const reminder = document.getElementById('leave-fixed-reminder');
+      const reminderTime = document.getElementById('leave-fixed-reminder-time');
+      if (reminder && reminderTime) {
+        if (settings.hours < 8) {
+          let clockInTime = new Date(end);
+          if (settings.hours === 4) {
+            clockInTime.setHours(13, 20, 0, 0);
+          }
+          reminderTime.textContent = clockInTime.toLocaleTimeString('zh-TW', fmt);
+          reminder.style.display = 'block';
+        } else {
+          reminder.style.display = 'none';
+        }
+      }
+      
       xSummary.style.display = 'flex';
     } else {
       xSummary.style.display = 'none';
+      const reminder = document.getElementById('leave-fixed-reminder');
+      if (reminder) reminder.style.display = 'none';
     }
   }
 }
