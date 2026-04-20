@@ -1004,7 +1004,7 @@ async function syncLoadFromSheets() {
   const apiUrl = SHEETS_API_URL;
   const indicator = showSyncIndicator('讀取雲端狀態...');
   try {
-    const res = await fetch(apiUrl, { method: 'GET' });
+    const res = await fetch(apiUrl, { method: 'GET', redirect: 'follow' });
     const data = await res.json();
 
     if (!data.hasData || data.clockOut) {
@@ -1075,7 +1075,12 @@ async function syncClockIn(record) {
     workType: WORK_CONFIG[record.workType]?.label || '上班'
   };
   try {
-    const res = await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
     const data = await res.json();
     if (data.lastRow) {
       _sheetsLastRow = data.lastRow;
@@ -1108,7 +1113,12 @@ async function syncClockOut(record) {
     duration: durationStr
   };
   try {
-    await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
+    await fetch(apiUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
     _sheetsLastRow = 0;
     localStorage.removeItem('attendance_sheets_last_row');
     console.log('[Sheets Sync] 下班記錄已更新');
