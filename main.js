@@ -1058,6 +1058,12 @@ async function syncLoadFromSheets() {
   } catch (err) {
     hideSyncIndicator(indicator, '⚠️ 無法連線雲端（使用本地資料）');
     console.warn('[Sheets Sync] 讀取失敗:', err);
+    // 在手機端顯示具體錯誤，方便除錯
+    if (err.message.includes('Failed to fetch')) {
+      alert('❌ 雲端讀取失敗：可能是 CORS 跨域問題或 API 網址錯誤。請確認部署權限為「所有人(Anyone)」。');
+    } else {
+      alert('❌ 雲端讀取錯誤：' + err.message);
+    }
   }
 }
 
@@ -1089,6 +1095,7 @@ async function syncClockIn(record) {
     console.log('[Sheets Sync] 上班記錄已上傳，列號:', _sheetsLastRow);
   } catch (err) {
     console.warn('[Sheets Sync] 上班上傳失敗:', err);
+    alert('❌ 上班同步失敗：' + err.message);
   }
 }
 
@@ -1124,6 +1131,7 @@ async function syncClockOut(record) {
     console.log('[Sheets Sync] 下班記錄已更新');
   } catch (err) {
     console.warn('[Sheets Sync] 下班上傳失敗:', err);
+    alert('❌ 下班同步失敗：' + err.message);
   }
 }
 

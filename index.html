@@ -19,8 +19,15 @@
       <!-- Home Tab -->
       <section id="tab-home" class="tab-content active">
         <header class="app-header">
-          <h1>出勤紀錄</h1>
-          <p class="subtitle">今天也要充滿活力</p>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+              <h1>出勤紀錄</h1>
+              <p class="subtitle">今天也要充滿活力</p>
+            </div>
+            <button class="icon-btn" onclick="syncLoadFromSheets()" title="立即同步雲端" style="background: var(--bg-card); color: var(--text-primary); border: none; padding: 10px; border-radius: 50%; box-shadow: var(--shadow-sm); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <span class="material-icons-round">cloud_sync</span>
+            </button>
+          </div>
         </header>
 
         <div class="clock-widget">
