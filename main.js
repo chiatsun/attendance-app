@@ -1031,23 +1031,29 @@ async function syncLoadFromSheets() {
       }
 
       let punchInTime;
-      // 增強解析邏輯：判斷是完整時間字串還是 HH:mm
-      if (data.clockIn.includes(' ') || data.clockIn.includes('GMT')) {
-        // 可能是完整日期字串，直接嘗試解析
-        punchInTime = new Date(data.clockIn);
-      } else {
-        // 預期是 HH:mm
-        const parts = data.clockIn.split(':');
-        if (parts.length >= 2) {
-          const [h, m] = parts.map(Number);
+      // 確保取得正確的日期字串 (yyyy/MM/dd)
+      const datePart = data.date.includes(' ') ? data.date.split(' ')[0] : data.date;
+      // 確保取得正確的時間字串 (HH:mm)
+      const timePart = data.clockIn.includes(' ') ? data.clockIn.split(' ').pop().substring(0, 5) : data.clockIn;
+
+      try {
+        // 嘗試組合日期與時間： "2026/04/20 15:00"
+        const combinedStr = `${datePart.replace(/\//g, '-')}T${timePart}:00`;
+        punchInTime = new Date(combinedStr);
+
+        // 如果組合解析失敗（例如日期格式不是 yyyy/MM/dd），退而求其次用今天的日期配上該時間
+        if (isNaN(punchInTime.getTime())) {
+          const [h, m] = timePart.split(':').map(Number);
           punchInTime = new Date();
           punchInTime.setHours(h, m, 0, 0);
         }
+      } catch (e) {
+        punchInTime = new Date(); // 最保險的墊底方案
       }
 
       // 檢查解析結果是否有效
       if (!punchInTime || isNaN(punchInTime.getTime())) {
-        hideSyncIndicator(indicator, '⚠️ 雲端資料格式錯誤');
+        hideSyncIndicator(indicator, '⚠️ 雲端資料解析失敗');
         return;
       }
 
