@@ -1013,8 +1013,17 @@ async function syncLoadFromSheets() {
     const data = await res.json();
 
     if (!data.hasData || data.clockOut) {
-      // 沒資料，或最後一筆已下班 → 不做任何事，保持原本 localStorage 狀態
-      hideSyncIndicator(indicator, '✅ 雲端同步完成');
+      // 雲端顯示已下班，但本地卻還在上班中 -> 同步歸零狀態
+      if (state.isPunchedIn) {
+        state.isPunchedIn = false;
+        state.punchInTime = null;
+        saveData();
+        updateUI();
+        updateHistoryUI();
+        hideSyncIndicator(indicator, '☁️ 雲端同步：已同步下班狀態');
+      } else {
+        hideSyncIndicator(indicator, '✅ 雲端同步完成');
+      }
       return;
     }
 
