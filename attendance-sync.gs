@@ -41,12 +41,19 @@ function doGet(e) {
     }
 
     const row = sheet.getRange(lastRow, 1, 1, 6).getValues()[0];
+    
+    // 輔助函式：確保日期/時間格式正確
+    const fmtTime = (val) => {
+      if (!val || !(val instanceof Date)) return val ? val.toString() : '';
+      return Utilities.formatDate(val, Session.getScriptTimeZone(), "HH:mm");
+    };
+
     return jsonResponse({
       hasData: true,
       lastRow: lastRow,
-      date: row[0] ? row[0].toString() : '',
-      clockIn: row[1] ? row[1].toString() : '',
-      clockOut: row[2] ? row[2].toString() : '',
+      date: row[0] instanceof Date ? Utilities.formatDate(row[0], Session.getScriptTimeZone(), "yyyy/MM/dd") : row[0].toString(),
+      clockIn: fmtTime(row[1]),
+      clockOut: fmtTime(row[2]),
       workType: row[3] ? row[3].toString() : '',
       duration: row[4] ? row[4].toString() : ''
     });

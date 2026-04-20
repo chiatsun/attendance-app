@@ -523,13 +523,9 @@ function calculatePunchOut(punchInTime, workType, specificLeaveHours = null) {
   // Base reach time (hours of work)
   let punchOut = new Date(punchInTime.getTime() + actualWorkHours * 3600000);
 
-  // --- Lunch Break Logic (Standard: 12:00) ---
-  // If we punch in before 12:00 and our estimated out time passes 12:00,
-  // we must account for the fixed break duration.
-  const lunchStart = new Date(punchInTime);
-  lunchStart.setHours(12, 0, 0, 0);
-
-  if (punchInTime < lunchStart && punchOut > lunchStart) {
+  // --- 休息時間邏輯 ---
+  // 只要實際工作時數大於 4 小時，就必須計入休息時間 (Normal 50分 / Overtime 30分)
+  if (actualWorkHours > 4) {
     punchOut = new Date(punchOut.getTime() + config.breakMins * 60000);
   }
 
@@ -642,6 +638,15 @@ function updateUI() {
 
     dot.classList.add('active');
     const cfg = WORK_CONFIG[state.workType];
+    
+    // 安全檢查：防止 punchInTime 為空導致當機
+    if (!state.punchInTime) {
+      state.isPunchedIn = false;
+      saveData();
+      updateUI();
+      return;
+    }
+
     const timeInStr = state.punchInTime.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
     text.textContent = `目前的狀態：${cfg.label}中 (${timeInStr} 打卡)`;
     text.style.color = 'var(--success-color)';
@@ -1025,10 +1030,26 @@ async function syncLoadFromSheets() {
         return;
       }
 
-      // 解析上班時間字串「HH:mm」
-      const [h, m] = data.clockIn.split(':').map(Number);
-      const punchInTime = new Date();
-      punchInTime.setHours(h, m, 0, 0);
+      let punchInTime;
+      // 增強解析邏輯：判斷是完整時間字串還是 HH:mm
+      if (data.clockIn.includes(' ') || data.clockIn.includes('GMT')) {
+        // 可能是完整日期字串，直接嘗試解析
+        punchInTime = new Date(data.clockIn);
+      } else {
+        // 預期是 HH:mm
+        const parts = data.clockIn.split(':');
+        if (parts.length >= 2) {
+          const [h, m] = parts.map(Number);
+          punchInTime = new Date();
+          punchInTime.setHours(h, m, 0, 0);
+        }
+      }
+
+      // 檢查解析結果是否有效
+      if (!punchInTime || isNaN(punchInTime.getTime())) {
+        hideSyncIndicator(indicator, '⚠️ 雲端資料格式錯誤');
+        return;
+      }
 
       // 還原 workType
       const workType = data.workType === '加班' ? 'overtime' : 'normal';
