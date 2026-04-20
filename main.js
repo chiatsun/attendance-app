@@ -729,7 +729,10 @@ function updateHistoryUI() {
     return;
   }
 
-  state.records.forEach(record => {
+  // 僅顯示「已完成下班」的紀錄，避免誤刪正在進行中的狀態
+  const completedRecords = state.records.filter(r => r.out !== null);
+
+  completedRecords.forEach(record => {
     const timeInStr = record.in.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
     let timeOutStr, estOutStr = '';
 
@@ -1013,14 +1016,15 @@ async function syncLoadFromSheets() {
     const data = await res.json();
 
     if (!data.hasData || data.clockOut) {
-      // 雲端顯示已下班，但本地卻還在上班中 -> 同步歸零狀態
+      // 雲端顯示最後一筆已下班或無資料
+      // 【新增】如果雲端已下班，但本地還在上班中 -> 強制結束本地上班狀態
       if (state.isPunchedIn) {
         state.isPunchedIn = false;
         state.punchInTime = null;
         saveData();
         updateUI();
         updateHistoryUI();
-        hideSyncIndicator(indicator, '☁️ 雲端同步：已同步下班狀態');
+        hideSyncIndicator(indicator, '☁️ 雲端同步：已同步為下班狀態');
       } else {
         hideSyncIndicator(indicator, '✅ 雲端同步完成');
       }
