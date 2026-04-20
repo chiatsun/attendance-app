@@ -1031,24 +1031,18 @@ async function syncLoadFromSheets() {
       }
 
       let punchInTime;
-      // 確保取得正確的日期字串 (yyyy/MM/dd)
-      const datePart = data.date.includes(' ') ? data.date.split(' ')[0] : data.date;
-      // 確保取得正確的時間字串 (HH:mm)
-      const timePart = data.clockIn.includes(' ') ? data.clockIn.split(' ').pop().substring(0, 5) : data.clockIn;
+      
+      // 輔助函式：從各種亂七八糟的字串中抓出 HH:mm
+      const extractTime = (str) => {
+        const match = str.match(/(\d{1,2}):(\d{2})/);
+        return match ? { h: parseInt(match[1]), m: parseInt(match[2]) } : null;
+      };
 
-      try {
-        // 嘗試組合日期與時間： "2026/04/20 15:00"
-        const combinedStr = `${datePart.replace(/\//g, '-')}T${timePart}:00`;
-        punchInTime = new Date(combinedStr);
-
-        // 如果組合解析失敗（例如日期格式不是 yyyy/MM/dd），退而求其次用今天的日期配上該時間
-        if (isNaN(punchInTime.getTime())) {
-          const [h, m] = timePart.split(':').map(Number);
-          punchInTime = new Date();
-          punchInTime.setHours(h, m, 0, 0);
-        }
-      } catch (e) {
-        punchInTime = new Date(); // 最保險的墊底方案
+      const timeInfo = extractTime(data.clockIn);
+      if (timeInfo) {
+        // 不管雲端給什麼年份，我們一律強制用「今天」的日期，配上雲端給的「時:分」
+        punchInTime = new Date();
+        punchInTime.setHours(timeInfo.h, timeInfo.m, 0, 0);
       }
 
       // 檢查解析結果是否有效
