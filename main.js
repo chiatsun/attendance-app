@@ -24,6 +24,12 @@ const WORK_CONFIG = {
 };
 const WORK_HOURS = 8; // hours of actual work
 
+// --- Google Sheets 雙向同步設定 ---
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw5Di1lfWL3_SkCQiMxiVxiAh3JZ2ULgTkTGq656CDGgFqrxZ1MJL5Ca5y34s_U39AhSQ/exec';
+
+// 記住試算表最後一列的列號（用於下班打卡時更新同一列）
+let _sheetsLastRow = parseInt(localStorage.getItem('attendance_sheets_last_row') || '0', 10);
+
 // --- Initialize App ---
 function init() {
   loadData();
@@ -33,6 +39,8 @@ function init() {
   syncNotifyUI();
   syncLeaveUI();
   setupPickerInterceptor();
+  // 從 Google 試算表讀取最後一筆打卡狀態
+  syncLoadFromSheets();
 }
 
 // --- Data Layer ---
@@ -577,6 +585,8 @@ window.handlePunchIn = function() {
   saveData();
   updateUI();
   updateHistoryUI();
+  // 上傳上班記錄到 Google 試算表
+  syncClockIn(state.records[0]);
 };
 
 window.handlePunchOut = function() {
@@ -596,6 +606,8 @@ window.handlePunchOut = function() {
   saveData();
   updateUI();
   updateHistoryUI();
+  // 更新 Google 試算表最後一列的下班時間
+  if (currentRecord) syncClockOut(currentRecord);
 };
 
 // --- UI Updates ---
@@ -977,3 +989,156 @@ function setupPickerInterceptor() {
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// Google Sheets 雙向同步模組
+// ═══════════════════════════════════════════════════════
+
+/**
+ * APP 開啟時呼叫：讀取試算表最後一列
+ * - 若最後一列只有上班時間（無下班）→ 自動還原「上班中」狀態，帶入上班時間
+ * - 若最後一列已有下班時間 → 正常顯示未打卡
+ */
+async function syncLoadFromSheets() {
+  if (!SHEETS_API_URL) return; // 未設定 API URL，跳過
+  const apiUrl = SHEETS_API_URL;
+  const indicator = showSyncIndicator('讀取雲端狀態...');
+  try {
+    const res = await fetch(apiUrl, { method: 'GET' });
+    const data = await res.json();
+
+    if (!data.hasData || data.clockOut) {
+      // 沒資料，或最後一筆已下班 → 不做任何事，保持原本 localStorage 狀態
+      hideSyncIndicator(indicator, '✅ 雲端同步完成');
+      return;
+    }
+
+    // 最後一筆只有上班時間（尚未下班）
+    if (data.clockIn && !data.clockOut) {
+      // 記住列號，下班時需要更新這一列
+      _sheetsLastRow = data.lastRow;
+      localStorage.setItem('attendance_sheets_last_row', _sheetsLastRow);
+
+      // 若本地已經有上班中狀態，不重複覆蓋
+      if (state.isPunchedIn) {
+        hideSyncIndicator(indicator, '✅ 雲端同步完成');
+        return;
+      }
+
+      // 解析上班時間字串「HH:mm」
+      const [h, m] = data.clockIn.split(':').map(Number);
+      const punchInTime = new Date();
+      punchInTime.setHours(h, m, 0, 0);
+
+      // 還原 workType
+      const workType = data.workType === '加班' ? 'overtime' : 'normal';
+      state.workType = workType;
+
+      // 模擬打卡（帶入試算表上的時間）
+      state.isPunchedIn = true;
+      state.punchInTime = punchInTime;
+      _notifyFired = false;
+
+      const estimatedOut = calculatePunchOut(punchInTime, workType);
+      state.records.unshift({
+        id: 'sheets_' + data.lastRow,
+        date: punchInTime.toLocaleDateString('zh-TW'),
+        workType: workType,
+        in: punchInTime,
+        out: null,
+        estimatedOut: estimatedOut,
+        durationMs: 0
+      });
+
+      saveData();
+      updateUI();
+      updateHistoryUI();
+      hideSyncIndicator(indicator, `☁️ 已從雲端還原：上班中 ${data.clockIn}`);
+    }
+  } catch (err) {
+    hideSyncIndicator(indicator, '⚠️ 無法連線雲端（使用本地資料）');
+    console.warn('[Sheets Sync] 讀取失敗:', err);
+  }
+}
+
+/**
+ * 上班打卡後呼叫：在試算表新增一列
+ */
+async function syncClockIn(record) {
+  if (!SHEETS_API_URL || !record) return;
+  const apiUrl = SHEETS_API_URL;
+  const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
+  const payload = {
+    action: 'clockIn',
+    date: record.in.toLocaleDateString('zh-TW'),
+    clockIn: record.in.toLocaleTimeString('zh-TW', fmt),
+    workType: WORK_CONFIG[record.workType]?.label || '上班'
+  };
+  try {
+    const res = await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.lastRow) {
+      _sheetsLastRow = data.lastRow;
+      localStorage.setItem('attendance_sheets_last_row', _sheetsLastRow);
+    }
+    console.log('[Sheets Sync] 上班記錄已上傳，列號:', _sheetsLastRow);
+  } catch (err) {
+    console.warn('[Sheets Sync] 上班上傳失敗:', err);
+  }
+}
+
+/**
+ * 下班打卡後呼叫：更新試算表最後一列的下班時間
+ */
+async function syncClockOut(record) {
+  if (!SHEETS_API_URL || !record || !_sheetsLastRow) return;
+  const apiUrl = SHEETS_API_URL;
+  const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
+  const rawMs = record.durationMs || (record.out - record.in);
+  const cfg = WORK_CONFIG[record.workType];
+  const netMs = rawMs > 4 * 3600000 ? Math.max(0, rawMs - cfg.breakMins * 60000) : rawMs;
+  const netHrs = Math.floor(netMs / 3600000);
+  const netMins = Math.floor((netMs % 3600000) / 60000);
+  const durationStr = `${netHrs}h ${netMins}m`;
+
+  const payload = {
+    action: 'clockOut',
+    lastRow: _sheetsLastRow,
+    clockOut: record.out.toLocaleTimeString('zh-TW', fmt),
+    duration: durationStr
+  };
+  try {
+    await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
+    _sheetsLastRow = 0;
+    localStorage.removeItem('attendance_sheets_last_row');
+    console.log('[Sheets Sync] 下班記錄已更新');
+  } catch (err) {
+    console.warn('[Sheets Sync] 下班上傳失敗:', err);
+  }
+}
+
+// ─── 同步狀態提示列 ───
+function showSyncIndicator(msg) {
+  let el = document.getElementById('sheets-sync-indicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sheets-sync-indicator';
+    el.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.85);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:9999;transition:opacity 0.3s;white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.display = 'block';
+  return el;
+}
+
+function hideSyncIndicator(el, finalMsg) {
+  if (!el) return;
+  if (finalMsg) {
+    el.textContent = finalMsg;
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 300); }, 2500);
+  } else {
+    el.style.display = 'none';
+  }
+}
+
