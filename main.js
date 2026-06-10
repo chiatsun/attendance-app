@@ -296,6 +296,17 @@ function syncLeaveUI() {
   const isFlex = settings.enabled && settings.type === 'flexible';
   const isFixed = settings.enabled && settings.type === 'fixed';
 
+  // 更新彈性請假標籤，動態加入今日上班打卡時間
+  const flexLabel = document.getElementById('flexible-hours-label');
+  if (flexLabel) {
+    let punchInStr = '--:--';
+    if (state.punchInTime) {
+      const fmtTemp = { hour12: false, hour: '2-digit', minute: '2-digit' };
+      punchInStr = new Date(state.punchInTime).toLocaleTimeString('zh-TW', fmtTemp);
+    }
+    flexLabel.textContent = `選擇請假時數（預計可打卡下班時間），今日上班打卡時間 ${punchInStr}`;
+  }
+
   // Toggle Switches & Icons
   const fToggle = document.getElementById('leave-flexible-toggle');
   const fIcon = document.getElementById('leave-flexible-icon');
@@ -339,11 +350,10 @@ function syncLeaveUI() {
     if (fBtn) fBtn.classList.toggle('active', isFlex && i === settings.hours);
     const fTime = document.getElementById(`flex-time-${i}`);
     if (fTime) {
-      if (canShowRange && stdOut) {
-        let startMs = stdOut.getTime() - (i * 3600000);
-        if (i > 4) startMs -= (config.breakMins * 60 * 1000);
-        const start = new Date(startMs);
-        fTime.textContent = `(${start.toLocaleTimeString('zh-TW', fmt)} 起)`;
+      if (canShowRange) {
+        // 互換後：按鈕文字代表「打卡下班時間」，即 i 小時後的打卡下班時間
+        const start = calculatePunchOut(state.punchInTime, wt, i, 'flexible');
+        fTime.textContent = `(~${start.toLocaleTimeString('zh-TW', fmt)}之後)`;
       } else {
         fTime.textContent = '';
       }
@@ -355,10 +365,10 @@ function syncLeaveUI() {
     const xTime = document.getElementById(`fixed-time-${i}`);
     if (xTime) {
       let endMs = i * 3600000;
-      if (i > 4) endMs += 50 * 60000; // Break gap
+      if (i >= 4) endMs += 50 * 60000; // Break gap
       const base = new Date(); base.setHours(8, 30, 0, 0);
       const end = new Date(base.getTime() + endMs);
-      xTime.textContent = `(~${end.toLocaleTimeString('zh-TW', fmt)})`;
+      xTime.textContent = `(${end.toLocaleTimeString('zh-TW', fmt)}~之前)`;
     }
   }
 
@@ -367,22 +377,12 @@ function syncLeaveUI() {
   if (fSummary) {
     if (isFlex && canShowRange && stdOut) {
       const flexHrs = settings.hours;
-      // We will use the calculatePunchOut helper below to get the exact start/end
       
-      // Let's use a simpler way: The leave period ends at stdOut.
-      // The start is stdOut minus (hours + break if hours spans lunch)
-      // Actually, Example (2) says: 09:15 in, Out at 14:05.
-      // Leave 4h starts at 14:05 - 4h = 10:05? No, they start leave at 14:05.
-      // Wait! The user says: "假單填寫時間為 14:05-18:05" (4 hours).
-      // This means the leave is AFTER the 4 hours of work.
-      // 09:15 + 4h work + 50m break = 14:05.
-      // So Leave starts at 14:05.
-      // And Ends at 18:05.
-      // My calculatePunchOut(0, 0) gives 18:05.
-      // My calculatePunchOut(hours) gives 14:05.
-      // So Leave Range = [calculatePunchOut(hours) to calculatePunchOut(0)].
+      // 互換後：預計請假時段的開始時間代表「需要請假的時間」，從不請假的預計下班時間 (stdOut) 往前推算
+      let leaveStartMs = stdOut.getTime() - (flexHrs * 3600000);
+      if (flexHrs > 4) leaveStartMs -= (config.breakMins * 60 * 1000);
+      const leaveStart = new Date(leaveStartMs);
       
-      const leaveStart = calculatePunchOut(state.punchInTime, wt, flexHrs);
       const leaveEnd = calculatePunchOut(state.punchInTime, wt, 0);
 
       const fRange = document.getElementById('leave-flexible-range');
@@ -500,11 +500,15 @@ function fireNotification(estOut, minsBefore) {
  * Calculate estimated punch-out time:
  *  Total time to stay = 8 work hours + break duration
  */
-function calculatePunchOut(punchInTime, workType, specificLeaveHours = null) {
+function calculatePunchOut(punchInTime, workType, specificLeaveHours = null, forceLeaveType = null) {
   const config = WORK_CONFIG[workType];
   
+  // 決定使用哪個 leaveType，如果有傳入 forceLeaveType 則強制使用之
+  const leaveType = forceLeaveType || (state.leaveSettings && state.leaveSettings.enabled ? state.leaveSettings.type : 'flexible');
+  const leaveEnabled = forceLeaveType ? true : (state.leaveSettings && state.leaveSettings.enabled);
+  
   // --- Scenario B: Fixed Mode (Late Arrival / Morning Leave) ---
-  if (state.leaveSettings && state.leaveSettings.enabled && state.leaveSettings.type === 'fixed') {
+  if (leaveEnabled && leaveType === 'fixed') {
     const out = new Date(punchInTime);
     out.setHours(17, 20, 0, 0); // Always fixed at 17:20
     return out;
@@ -514,7 +518,7 @@ function calculatePunchOut(punchInTime, workType, specificLeaveHours = null) {
   
   if (specificLeaveHours !== null) {
     actualWorkHours = WORK_HOURS - specificLeaveHours;
-  } else if (state.leaveSettings && state.leaveSettings.enabled) {
+  } else if (leaveEnabled) {
     actualWorkHours = WORK_HOURS - state.leaveSettings.hours;
   }
   
@@ -657,7 +661,11 @@ function updateUI() {
     if (currentRecord && currentRecord.estimatedOut) {
       const est = new Date(currentRecord.estimatedOut);
       estimateTime.textContent = est.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
-      breakLabel.textContent = cfg.breakLabel;
+      if (state.leaveSettings && state.leaveSettings.enabled && state.leaveSettings.hours >= 4) {
+        breakLabel.textContent = '';
+      } else {
+        breakLabel.textContent = cfg.breakLabel;
+      }
       estimateEl.style.display = 'flex';
       
       const leaveNote = document.getElementById('leave-note');
