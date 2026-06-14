@@ -1045,10 +1045,20 @@ async function syncLoadFromSheets() {
       _sheetsLastRow = data.lastRow;
       localStorage.setItem('attendance_sheets_last_row', _sheetsLastRow);
 
-      // 若本地已經有上班中狀態，不重複覆蓋
-      if (state.isPunchedIn) {
-        hideSyncIndicator(indicator, '✅ 雲端同步完成');
-        return;
+      // 若本地已經有上班中狀態，但打卡日期與雲端不同，代表本地資料已過期（未下班），此時應以雲端為準
+      if (state.isPunchedIn && state.punchInTime) {
+        const localD = new Date(state.punchInTime);
+        const cloudD = new Date(data.date);
+        const isSameDay = localD.getFullYear() === cloudD.getFullYear() &&
+                          localD.getMonth() === cloudD.getMonth() &&
+                          localD.getDate() === cloudD.getDate();
+        if (isSameDay) {
+          hideSyncIndicator(indicator, '✅ 雲端同步完成');
+          return;
+        } else {
+          // 本地為舊的未下班紀錄，清除該筆紀錄以避免資料重複
+          state.records = state.records.filter(r => r.out !== null);
+        }
       }
 
       let punchInTime;
