@@ -4,7 +4,7 @@ let state = {
   punchInTime: null,
   workType: 'normal',     // 'normal' | 'overtime'
   displayMode: 'elapsed', // 'elapsed' | 'countdown'
-  leaveSettings: { enabled: false, type: 'flexible', hours: 4 },
+  leaveSettings: { enabled: false, type: 'flexible', hours: 4, role: 'admin' },
   records: []
 };
 
@@ -55,7 +55,8 @@ function loadData() {
       state.leaveSettings = {
         enabled: parsed.leaveSettings.enabled || false,
         type: parsed.leaveSettings.type || 'flexible',
-        hours: parsed.leaveSettings.hours || 4
+        hours: parsed.leaveSettings.hours || 4,
+        role: parsed.leaveSettings.role || 'admin'
       };
     }
   }
@@ -324,6 +325,19 @@ function syncLeaveUI() {
     xIcon.style.color = isFixed ? '#3498db' : '#aaa';
   }
 
+  // Fixed Role Toggle Buttons UI
+  const role = settings.role || 'admin';
+  const rAdminBtn = document.getElementById('role-admin');
+  const rLabBtn = document.getElementById('role-lab');
+  if (rAdminBtn) rAdminBtn.classList.toggle('active', role === 'admin');
+  if (rLabBtn) rLabBtn.classList.toggle('active', role === 'lab');
+
+  const fixedHoursLabel = document.getElementById('fixed-hours-label');
+  if (fixedHoursLabel) {
+    const fixedOutStr = role === 'lab' ? '18:20' : '17:20';
+    fixedHoursLabel.textContent = `選擇上午請假時數（預計上班打卡時間），下班時間固定為 ${fixedOutStr} 之後`;
+  }
+
   // Groups
   const fGroup = document.getElementById('group-flexible-hours');
   if (fGroup) {
@@ -342,6 +356,7 @@ function syncLeaveUI() {
   const canShowRange = state.isPunchedIn && state.records.length > 0;
   const stdOut = (state.isPunchedIn && state.punchInTime) ? calculatePunchOut(state.punchInTime, wt, 0) : null;
   const fmt = { hour12: false, hour: '2-digit', minute: '2-digit' };
+  const baseHour = role === 'lab' ? 9 : 8;
 
   // 4. Update Buttons for Both Cards
   for (let i = 1; i <= 8; i++) {
@@ -366,7 +381,7 @@ function syncLeaveUI() {
     if (xTime) {
       let endMs = i * 3600000;
       if (i >= 4) endMs += 50 * 60000; // Break gap
-      const base = new Date(); base.setHours(8, 30, 0, 0);
+      const base = new Date(); base.setHours(baseHour, 30, 0, 0);
       const end = new Date(base.getTime() + endMs);
       xTime.textContent = `(${end.toLocaleTimeString('zh-TW', fmt)}~之前)`;
     }
@@ -396,22 +411,27 @@ function syncLeaveUI() {
   const xSummary = document.getElementById('leave-fixed-summary');
   if (xSummary) {
     if (isFixed) {
-      let endMs = settings.hours * 3600000;
-      if (settings.hours > 4) endMs += 50 * 60000;
-      const base = new Date(); base.setHours(8, 30, 0, 0);
-      const end = new Date(base.getTime() + endMs);
+      // 預計請假時段（> 4小時才跨越午休，4小時整為 08:30~12:30 或 09:30~13:30）
+      let leaveEndMs = settings.hours * 3600000;
+      if (settings.hours > 4) leaveEndMs += 50 * 60000;
+
+      // 上班打卡截止時間（>= 4小時加計 50 分鐘午休，4小時整為 13:20 或 14:20）
+      let clockInDeadlineMs = settings.hours * 3600000;
+      if (settings.hours >= 4) clockInDeadlineMs += 50 * 60000;
+
+      const base = new Date(); base.setHours(baseHour, 30, 0, 0);
+      const leaveEnd = new Date(base.getTime() + leaveEndMs);
+      const clockInDeadline = new Date(base.getTime() + clockInDeadlineMs);
+
+      const startStr = role === 'lab' ? '09:30' : '08:30';
       const xRange = document.getElementById('leave-fixed-range');
-      if (xRange) xRange.textContent = `預計請假時段：08:30 ~ ${end.toLocaleTimeString('zh-TW', fmt)}`;
+      if (xRange) xRange.textContent = `預計請假時段：${startStr} ~ ${leaveEnd.toLocaleTimeString('zh-TW', fmt)}`;
       
       const reminder = document.getElementById('leave-fixed-reminder');
       const reminderTime = document.getElementById('leave-fixed-reminder-time');
       if (reminder && reminderTime) {
         if (settings.hours < 8) {
-          let clockInTime = new Date(end);
-          if (settings.hours === 4) {
-            clockInTime.setHours(13, 20, 0, 0);
-          }
-          reminderTime.textContent = clockInTime.toLocaleTimeString('zh-TW', fmt);
+          reminderTime.textContent = clockInDeadline.toLocaleTimeString('zh-TW', fmt);
           reminder.style.display = 'block';
         } else {
           reminder.style.display = 'none';
@@ -434,6 +454,13 @@ window.onLeaveToggle = function(type, checked) {
   } else {
     state.leaveSettings.enabled = false;
   }
+  saveData();
+  syncLeaveUI();
+  recalcCurrentSession();
+};
+
+window.setFixedRole = function(role) {
+  state.leaveSettings.role = role;
   saveData();
   syncLeaveUI();
   recalcCurrentSession();
@@ -509,8 +536,13 @@ function calculatePunchOut(punchInTime, workType, specificLeaveHours = null, for
   
   // --- Scenario B: Fixed Mode (Late Arrival / Morning Leave) ---
   if (leaveEnabled && leaveType === 'fixed') {
+    const role = (state.leaveSettings && state.leaveSettings.role) || 'admin';
     const out = new Date(punchInTime);
-    out.setHours(17, 20, 0, 0); // Always fixed at 17:20
+    if (role === 'lab') {
+      out.setHours(18, 20, 0, 0); // Fixed at 18:20 for Lab
+    } else {
+      out.setHours(17, 20, 0, 0); // Fixed at 17:20 for Admin
+    }
     return out;
   }
 
@@ -1021,7 +1053,15 @@ async function syncLoadFromSheets() {
   const indicator = showSyncIndicator('讀取雲端狀態...');
   try {
     const res = await fetch(apiUrl, { method: 'GET', redirect: 'follow' });
-    const data = await res.json();
+    const text = await res.text();
+
+    if (!text || text.trim().startsWith('<')) {
+      hideSyncIndicator(indicator, '⚠️ 雲端權限未設定為「所有人」');
+      alert('❌ 雲端讀取錯誤：Google 雲端回傳了 HTML 登入/錯誤頁面而非 JSON 格式。\n\n請檢查 Google Apps Script 部署：\n1. 點選「部署」→「管理部署作業」→ 編輯\n2. 確定「存取權限」設為「所有人 (Anyone)」\n3. 確定「執行身分」設為「我自己 (Me)」\n4. 建立「新版本」並重新儲存');
+      return;
+    }
+
+    const data = JSON.parse(text);
 
     if (!data.hasData || data.clockOut) {
       // 雲端顯示最後一筆已下班或無資料
@@ -1113,6 +1153,8 @@ async function syncLoadFromSheets() {
     // 在手機端顯示具體錯誤，方便除錯
     if (err.message.includes('Failed to fetch')) {
       alert('❌ 雲端讀取失敗：可能是 CORS 跨域問題或 API 網址錯誤。請確認部署權限為「所有人(Anyone)」。');
+    } else if (err.name === 'SyntaxError' || err.message.includes('JSON')) {
+      alert('❌ 雲端讀取錯誤：Google 雲端回傳了 HTML 頁面而非 JSON。\n\n請檢查 Google Apps Script 部署：\n1. 部署權限是否設為「所有人 (Anyone)」\n2. 執行身分是否設為「我自己 (Me)」\n3. 是否需要部署為「新版本」');
     } else {
       alert('❌ 雲端讀取錯誤：' + err.message);
     }

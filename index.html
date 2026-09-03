@@ -255,7 +255,13 @@
         <div class="settings-card" id="leave-fixed-card">
           <div class="field-group">
             <div class="notify-header" style="margin-bottom: 8px;">
-              <label class="field-label" style="margin:0; font-size:15px; font-weight: 700;">逾 10 點未打卡請假</label>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <label class="field-label" style="margin:0; font-size:15px; font-weight: 700;">逾 10 點未打卡請假</label>
+                <div class="warning-badge" id="leave-fixed-hint" style="margin-top: 0;">
+                  <span class="material-icons-round badge-icon">warning_amber</span>
+                  無彈性刷卡時間
+                </div>
+              </div>
               <label class="switch">
                 <input type="checkbox" id="leave-fixed-toggle" onchange="onLeaveToggle('fixed', this.checked)">
                 <span class="switch-track">
@@ -266,11 +272,25 @@
                 </span>
               </label>
             </div>
-            <p class="field-hint" id="leave-fixed-hint">無彈性刷卡時間，出勤回歸 8:30-17:20，請假開始為 8:30。</p>
+          </div>
+
+          <!-- Fixed Role Selection -->
+          <div class="field-group" id="group-fixed-role" style="margin-top: 14px;">
+            <label class="field-label" style="font-size: 13px;">人員身分與上班時段</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="role-admin" onclick="setFixedRole('admin')">
+                <span class="material-icons-round">business</span>
+                行政人員 (8:30-17:20)
+              </button>
+              <button class="toggle-btn" id="role-lab" onclick="setFixedRole('lab')">
+                <span class="material-icons-round">science</span>
+                實驗室 (9:30-18:20)
+              </button>
+            </div>
           </div>
 
           <div class="field-group" id="group-fixed-hours" style="opacity: 0.5; pointer-events: none; margin-top: 16px;">
-            <label class="field-label" style="margin-bottom:12px;">選擇上午請假時數（預計上班打卡時間），下班時間固定為17:20之後</label>
+            <label class="field-label" id="fixed-hours-label" style="margin-bottom:12px;">選擇上午請假時數（預計上班打卡時間），下班時間固定為 17:20 之後</label>
             <div class="leave-grid">
               <button class="leave-btn" id="fixed-leave-1" onclick="setLeaveHours('fixed', 1)"><span>1 小時</span><span
                   id="fixed-time-1" class="leave-time-label"></span></button>
